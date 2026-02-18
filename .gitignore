@@ -1,0 +1,88 @@
+# =========================
+# Android / Gradle
+# =========================
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+/build
+*/build/
+.cxx/
+.externalNativeBuild/
+
+# =========================
+# Gradle
+# =========================
+.gradle/
+gradle-app.setting
+
+# =========================
+# Local configuration
+# =========================
+local.properties
+
+# =========================
+# Android Studio / IntelliJ
+# =========================
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Kotlin
+# =========================
+.kotlin/
+
+# =========================
+# Lint / Test
+# =========================
+lint/
+lint-results*.html
+lint-results*.xml
+
+# =========================
+# Keystore (IMPORTANT)
+# =========================
+*.jks
+*.keystore
+
+# =========================
+# Firebase / Google
+# =========================
+google-services.json
+
+# =========================
+# Fastlane (if ever used)
+# =========================
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# =========================
+# NDK
+# =========================
+obj/
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.swp
+*~
+
