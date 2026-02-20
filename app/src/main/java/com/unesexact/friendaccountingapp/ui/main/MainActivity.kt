@@ -6,14 +6,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.unesexact.friendaccountingapp.R
 import com.unesexact.friendaccountingapp.data.local.database.DatabaseProvider
-import com.unesexact.friendaccountingapp.data.local.entity.FriendEntity
+import com.unesexact.friendaccountingapp.data.repository.FriendRepository
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var viewModel: FriendViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,21 +28,23 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // 🔥 ROOM TEST
+        // Setup ViewModel with Repository
+        val db = DatabaseProvider.getDatabase(applicationContext)
+        val repository = FriendRepository(db.friendDao())
+        val factory = FriendViewModelFactory(repository)
+
+        viewModel = ViewModelProvider(this, factory)[FriendViewModel::class.java]
+
+        // Observe data from ViewModel
         lifecycleScope.launch {
-
-            val db = DatabaseProvider.getDatabase(applicationContext)
-            val dao = db.friendDao()
-
-            // Insert test data
-            dao.insertFriend(FriendEntity(name = "John", balance = 100.0))
-
-            // Observe database
-            dao.getAllFriends().collectLatest { friends ->
+            viewModel.friends.collect { friends ->
                 friends.forEach {
-                    Log.d("ROOM_TEST", "Friend: ${it.name}, Balance: ${it.balance}")
+                    Log.d("VM_TEST", "Friend: ${it.name}, Balance: ${it.balance}")
                 }
             }
         }
+
+        // Insert test data through ViewModel (NOT DAO)
+        viewModel.addFriend("John", 100.0)
     }
 }
