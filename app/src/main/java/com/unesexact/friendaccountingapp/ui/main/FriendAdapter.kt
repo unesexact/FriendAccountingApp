@@ -16,7 +16,7 @@ class FriendAdapter : RecyclerView.Adapter<FriendAdapter.FriendViewHolder>() {
         notifyDataSetChanged()
     }
 
-    inner class FriendViewHolder(
+    class FriendViewHolder(
         private val binding: ItemFriendBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
