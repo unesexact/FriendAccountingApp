@@ -1,43 +1,170 @@
 package com.unesexact.friendaccountingapp.ui.main
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.unesexact.friendaccountingapp.data.local.database.DatabaseProvider
+import com.unesexact.friendaccountingapp.data.local.entity.FriendEntity
 import com.unesexact.friendaccountingapp.data.repository.FriendRepository
-import com.unesexact.friendaccountingapp.databinding.ActivityMainBinding
-import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-    private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: FriendViewModel
-    private val adapter = FriendAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Setup ViewBinding
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Setup ViewModel with Repository
+        // Setup ViewModel
         val db = DatabaseProvider.getDatabase(applicationContext)
         val repository = FriendRepository(db.friendDao())
         val factory = FriendViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[FriendViewModel::class.java]
 
-        // Setup RecyclerView
-        binding.recyclerViewFriends.layoutManager = LinearLayoutManager(this)
-        binding.recyclerViewFriends.adapter = adapter
-
-        // Observe friends list
-        lifecycleScope.launch {
-            viewModel.friends.collect { friends ->
-                adapter.submitList(friends)
+        setContent {
+            MaterialTheme {
+                FriendsScreen(viewModel)
             }
         }
     }
+}
+
+@Composable
+fun FriendsScreen(viewModel: FriendViewModel) {
+
+    val friends by viewModel.friends.collectAsStateWithLifecycle()
+    var showDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showDialog = true }) {
+                Text("+")
+            }
+        }) { padding ->
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(friends) { friend ->
+                FriendItem(friend)
+            }
+        }
+
+        if (showDialog) {
+            AddFriendDialog(onDismiss = { showDialog = false }, onAdd = { name, balance ->
+                viewModel.addFriend(name, balance)
+                showDialog = false
+            })
+        }
+    }
+}
+
+@Composable
+fun FriendItem(friend: FriendEntity) {
+
+    val balanceColor = when {
+        friend.balance > 0 -> Color(0xFF2E7D32) // Green
+        friend.balance < 0 -> Color(0xFFC62828) // Red
+        else -> Color.Gray
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = friend.name, style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                text = friend.balance.toString(),
+                color = balanceColor,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+    }
+}
+
+@Composable
+fun AddFriendDialog(
+    onDismiss: () -> Unit, onAdd: (String, Double) -> Unit
+) {
+
+    var name by remember { mutableStateOf("") }
+    var balance by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    AlertDialog(onDismissRequest = onDismiss, confirmButton = {
+        Button(onClick = {
+            if (name.isNotBlank() && balance.isNotBlank()) {
+                onAdd(name, balance.toDoubleOrNull() ?: 0.0)
+                Toast.makeText(context, "Friend added", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+            }
+        }) {
+            Text("Add")
+        }
+    }, dismissButton = {
+        Button(onClick = onDismiss) {
+            Text("Cancel")
+        }
+    }, title = { Text("Add Friend") }, text = {
+        Column {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = balance,
+                onValueChange = { balance = it },
+                label = { Text("Balance") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    })
 }
