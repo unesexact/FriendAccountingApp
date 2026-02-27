@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,11 +66,13 @@ class MainActivity : ComponentActivity() {
 fun FriendsScreen(viewModel: FriendViewModel) {
 
     val friends by viewModel.friends.collectAsStateWithLifecycle()
-    var showDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var friendToDelete by remember { mutableStateOf<FriendEntity?>(null) }
+    val context = LocalContext.current
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
                 Text("+")
             }
         }) { padding ->
@@ -81,21 +85,49 @@ fun FriendsScreen(viewModel: FriendViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(friends) { friend ->
-                FriendItem(friend)
+                FriendItem(friend = friend, onClick = {}, onLongClick = {
+                    friendToDelete = friend
+                })
             }
         }
 
-        if (showDialog) {
-            AddFriendDialog(onDismiss = { showDialog = false }, onAdd = { name, balance ->
+        if (showAddDialog) {
+            AddFriendDialog(onDismiss = { showAddDialog = false }, onAdd = { name, balance ->
                 viewModel.addFriend(name, balance)
-                showDialog = false
+                showAddDialog = false
             })
+        }
+
+        if (friendToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { friendToDelete = null },
+                title = { Text("Delete Friend") },
+                text = { Text("Delete ${friendToDelete!!.name}?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteFriend(friendToDelete!!)
+                            Toast.makeText(
+                                context, "Friend deleted", Toast.LENGTH_SHORT
+                            ).show()
+                            friendToDelete = null
+                        }) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { friendToDelete = null }) {
+                        Text("Cancel")
+                    }
+                })
         }
     }
 }
 
 @Composable
-fun FriendItem(friend: FriendEntity) {
+fun FriendItem(
+    friend: FriendEntity, onClick: () -> Unit, onLongClick: () -> Unit
+) {
 
     val balanceColor = when {
         friend.balance > 0 -> Color(0xFF2E7D32)
@@ -104,7 +136,11 @@ fun FriendItem(friend: FriendEntity) {
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick, onLongClick = onLongClick
+            )
     ) {
         Row(
             modifier = Modifier
@@ -146,7 +182,6 @@ fun AddFriendDialog(
                 }
 
                 val balanceValue = balance.toDoubleOrNull() ?: 0.0
-
                 onAdd(name.trim(), balanceValue)
 
                 Toast.makeText(
@@ -156,7 +191,7 @@ fun AddFriendDialog(
             Text("Add")
         }
     }, dismissButton = {
-        Button(onClick = onDismiss) {
+        TextButton(onClick = onDismiss) {
             Text("Cancel")
         }
     }, title = { Text("Add Friend") }, text = {
