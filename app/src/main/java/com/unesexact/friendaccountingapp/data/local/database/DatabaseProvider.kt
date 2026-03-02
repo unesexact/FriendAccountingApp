@@ -12,7 +12,7 @@ object DatabaseProvider {
         return INSTANCE ?: synchronized(this) {
             val instance = Room.databaseBuilder(
                 context.applicationContext, AppDatabase::class.java, "friend_database"
-            ).build()
+            ).fallbackToDestructiveMigration(true).build()
             INSTANCE = instance
             instance
         }

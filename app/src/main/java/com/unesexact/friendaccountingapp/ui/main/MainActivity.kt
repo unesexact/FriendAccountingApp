@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +41,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.unesexact.friendaccountingapp.data.local.database.DatabaseProvider
 import com.unesexact.friendaccountingapp.data.local.entity.FriendEntity
+import com.unesexact.friendaccountingapp.data.local.entity.TransactionType
 import com.unesexact.friendaccountingapp.data.repository.FriendRepository
+import com.unesexact.friendaccountingapp.data.repository.TransactionRepository
 
 class MainActivity : ComponentActivity() {
 
@@ -51,7 +54,8 @@ class MainActivity : ComponentActivity() {
 
         val db = DatabaseProvider.getDatabase(applicationContext)
         val repository = FriendRepository(db.friendDao())
-        val factory = FriendViewModelFactory(repository)
+        val transactionRepository = TransactionRepository(db.transactionDao())
+        val factory = FriendViewModelFactory(repository, transactionRepository)
         viewModel = ViewModelProvider(this, factory)[FriendViewModel::class.java]
 
         setContent {
@@ -64,15 +68,15 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun FriendsScreen(viewModel: FriendViewModel) {
-
     val friends by viewModel.friends.collectAsStateWithLifecycle()
-    var showAddDialog by remember { mutableStateOf(false) }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
     var friendToDelete by remember { mutableStateOf<FriendEntity?>(null) }
+    var transactionFriend by remember { mutableStateOf<FriendEntity?>(null) }
     val context = LocalContext.current
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            FloatingActionButton(onClick = { showAddFriendDialog = true }) {
                 Text("+")
             }
         }) { padding ->
@@ -85,16 +89,18 @@ fun FriendsScreen(viewModel: FriendViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(friends) { friend ->
-                FriendItem(friend = friend, onClick = {}, onLongClick = {
-                    friendToDelete = friend
-                })
+                FriendItem(
+                    friend = friend,
+                    onClick = { transactionFriend = friend },
+                    onLongClick = { friendToDelete = friend })
             }
         }
 
-        if (showAddDialog) {
-            AddFriendDialog(onDismiss = { showAddDialog = false }, onAdd = { name, balance ->
+        // Add Friend Dialog
+        if (showAddFriendDialog) {
+            AddFriendDialog(onDismiss = { showAddFriendDialog = false }, onAdd = { name, balance ->
                 viewModel.addFriend(name, balance)
-                showAddDialog = false
+                showAddFriendDialog = false
             })
         }
 
@@ -104,14 +110,11 @@ fun FriendsScreen(viewModel: FriendViewModel) {
                 title = { Text("Delete Friend") },
                 text = { Text("Delete ${friendToDelete!!.name}?") },
                 confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.deleteFriend(friendToDelete!!)
-                            Toast.makeText(
-                                context, "Friend deleted", Toast.LENGTH_SHORT
-                            ).show()
-                            friendToDelete = null
-                        }) {
+                    Button(onClick = {
+                        viewModel.deleteFriend(friendToDelete!!)
+                        Toast.makeText(context, "Friend deleted", Toast.LENGTH_SHORT).show()
+                        friendToDelete = null
+                    }) {
                         Text("Delete")
                     }
                 },
@@ -121,7 +124,94 @@ fun FriendsScreen(viewModel: FriendViewModel) {
                     }
                 })
         }
+
+        if (transactionFriend != null) {
+            AddTransactionDialog(
+                friend = transactionFriend!!,
+                onDismiss = { transactionFriend = null },
+                onTransaction = { amount, isCredit ->
+
+                    viewModel.addTransaction(
+                        transactionFriend!!, amount, if (isCredit) TransactionType.CREDIT
+                        else TransactionType.DEBIT
+                    )
+
+                    Toast.makeText(
+                        context, "Transaction added", Toast.LENGTH_SHORT
+                    ).show()
+
+                    transactionFriend = null
+                })
+        }
     }
+}
+
+@Composable
+fun AddTransactionDialog(
+    friend: FriendEntity, onDismiss: () -> Unit, onTransaction: (Double, Boolean) -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    var isCredit by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Transaction for ${friend.name}") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { input ->
+                        if (input.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            amount = input
+                        }
+                    },
+                    label = { Text("Amount") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = { isCredit = true }, colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isCredit) Color(0xFF2E7D32) else MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Credit (+)")
+                    }
+                    Button(
+                        onClick = { isCredit = false }, colors = ButtonDefaults.buttonColors(
+                            containerColor = if (!isCredit) Color(0xFFC62828) else MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Debit (-)")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val amountValue = amount.toDoubleOrNull()
+                if (amountValue == null || amountValue <= 0.0) {
+                    Toast.makeText(context, "Enter a valid amount", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                onTransaction(amountValue, isCredit)
+            }) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        })
 }
 
 @Composable
@@ -154,7 +244,7 @@ fun FriendItem(
             )
 
             Text(
-                text = friend.balance.toString(),
+                text = kotlin.math.abs(friend.balance).toString(),
                 color = balanceColor,
                 style = MaterialTheme.typography.titleMedium
             )
