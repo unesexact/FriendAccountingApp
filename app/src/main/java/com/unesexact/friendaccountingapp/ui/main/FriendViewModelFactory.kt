@@ -3,15 +3,18 @@ package com.unesexact.friendaccountingapp.ui.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.unesexact.friendaccountingapp.data.repository.FriendRepository
+import com.unesexact.friendaccountingapp.data.repository.TransactionRepository
 
 class FriendViewModelFactory(
-    private val repository: FriendRepository
+    private val friendRepository: FriendRepository,
+    private val transactionRepository: TransactionRepository
 ) : ViewModelProvider.Factory {
 
-    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FriendViewModel::class.java)) {
-            return FriendViewModel(repository) as T
+            @Suppress("UNCHECKED_CAST") return FriendViewModel(
+                friendRepository, transactionRepository
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
