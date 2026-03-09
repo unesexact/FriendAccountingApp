@@ -43,45 +43,59 @@ android {
 }
 
 dependencies {
+
+    // Core Android
     implementation(libs.androidx.core.ktx)
-    implementation(libs.material)
-    implementation(libs.androidx.activity)
-    implementation(libs.material3)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.compose.runtime.saveable)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
 
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
-
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-
+    // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
+
+    // Compose UI
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.compose.runtime.saveable)
 
-    debugImplementation(libs.androidx.compose.ui.tooling)
+    // Lifecycle
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    androidTestImplementation(libs.androidx.junit.v115)
-    androidTestImplementation(libs.core.ktx)
-    androidTestImplementation(libs.androidx.room.testing)
-    androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.androidx.core.testing)
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Material Components (required for XML theme)
+    implementation(libs.material)
+
+    // Debug tools
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Unit tests
+    testImplementation(libs.junit)
+
+    // Android instrumentation tests
+    androidTestImplementation(libs.junit.v115)
     androidTestImplementation(libs.androidx.espresso.core.v351)
 
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.7")
-    debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.7")
+    // Compose UI testing
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Room testing
+    androidTestImplementation(libs.androidx.room.testing.v261)
+
+    // Coroutines testing
+    androidTestImplementation(libs.kotlinx.coroutines.test.v173)
+
+    // Truth assertions
+    androidTestImplementation(libs.truth.v115)
+
+    // Architecture testing
+    androidTestImplementation(libs.androidx.core.testing)
 }
+
+
