@@ -328,9 +328,13 @@ fun AddFriendDialog(
 
             OutlinedTextField(
                 value = balance,
-                onValueChange = { balance = it },
+                onValueChange = {
+                    if (it.isEmpty() || it.matches(Regex("^-?\\d*\\.?\\d*$"))) {
+                        balance = it
+                    }
+                },
                 label = { Text("Balance (optional)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = WhiteText,
